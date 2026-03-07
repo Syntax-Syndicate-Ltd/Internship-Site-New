@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Syntax Syndicate</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+.mobile-nav-auth { display:flex; flex-direction:column; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); width:100%; }
+.mobile-nav-auth .btn { width:100%; justify-content:center; text-align:center; }
+
+.page-hero {
+  padding: 80px 0 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.page-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(67,232,216,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.page-hero h1 { font-size: clamp(32px, 5vw, 52px); margin-bottom: 16px; }
+.page-hero p  { font-size: 18px; color: var(--text-muted); max-width: 500px; margin: 0 auto; }
+
+.contact-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 48px;
+  padding: 64px 0;
+  align-items: start;
+}
+@media (max-width: 768px) { .contact-layout { grid-template-columns: 1fr; } }
+
+.contact-info-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.contact-info h2 { font-size: clamp(22px, 3vw, 32px); margin-bottom: 16px; }
+.contact-info p  { font-size: 15px; color: var(--text-muted); line-height: 1.8; }
+
+.contact-methods { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+.contact-method {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.contact-method:hover { border-color: var(--accent); transform: translateX(4px); }
+.contact-method-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.contact-method-text strong { display: block; font-size: 14px; color: var(--text); }
+.contact-method-text span   { font-size: 12px; color: var(--text-muted); }
+
+.contact-form-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 40px;
+}
+.contact-form-card h3 { font-size: 20px; margin-bottom: 24px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+}
+.form-success .success-icon { font-size: 48px; margin-bottom: 16px; }
+.form-success h3 { font-size: 20px; margin-bottom: 8px; }
+.form-success p  { color: var(--text-muted); font-size: 14px; }
+
+.faq-section { padding: 64px 0; border-top: 1px solid var(--border); }
+.faq-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px; }
+@media (max-width: 640px) { .faq-grid { grid-template-columns: 1fr; } }
+.faq-item {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 24px;
+}
+.faq-item h4 { font-size: 14px; margin-bottom: 8px; }
+.faq-item p  { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+      Syntax Syndicate
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="nav-link">Home</a></li>
+      <li><a href="opportunities.html" class="nav-link">Opportunities</a></li>
+      <li><a href="about.html" class="nav-link">About</a></li>
+    </ul>
+    <div class="nav-auth" id="nav-auth-container">
+      <a href="login.html" class="btn btn-ghost">Login</a>
+      <a href="signup.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Sign Up</a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <ul class="mobile-nav-links">
+    <li><a href="index.html" class="mobile-nav-link"><i class="bi bi-house me-2"></i> Home</a></li>
+    <li><a href="opportunities.html" class="mobile-nav-link"><i class="bi bi-grid-3x3-gap me-2"></i> Opportunities</a></li>
+    <li><a href="about.html" class="mobile-nav-link"><i class="bi bi-info-circle me-2"></i> About</a></li>
+  </ul>
+  <div class="mobile-nav-auth" id="mobile-auth-container"></div>
+</div>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Get In Touch</div>
+    <h1>We'd Love to <span class="accent">Hear From You</span></h1>
+    <p>Have a question, want to list an opportunity, or just want to say hi? We're here.</p>
+  </div>
+</div>
+
+<!-- CONTACT LAYOUT -->
+<div class="container">
+  <div class="contact-layout">
+
+    <!-- Left: Info -->
+    <div class="contact-info">
+      <div class="contact-info-label">Contact Info</div>
+      <h2>Reach out, we <span class="accent">respond fast</span></h2>
+      <p>Whether you're a company wanting to post an opportunity, a student with feedback, or just someone who wants to collaborate — drop us a message.</p>
+
+      <div class="contact-methods">
+        <a href="mailto:hello@syntaxsyndicate.co.in" class="contact-method">
+          <div class="contact-method-icon" style="background:rgba(124,111,255,0.12)">
+            <i class="bi bi-envelope-fill" style="color:var(--accent)"></i>
+          </div>
+          <div class="contact-method-text">
+            <strong>Email Us</strong>
+            <span>hello@syntaxsyndicate.co.in</span>
+          </div>
+        </a>
+        <a href="https://twitter.com/syntaxsyndicate" target="_blank" rel="noopener" class="contact-method">
+          <div class="contact-method-icon" style="background:rgba(61,232,160,0.1)">
+            <i class="bi bi-twitter-x" style="color:#3de8a0"></i>
+          </div>
+          <div class="contact-method-text">
+            <strong>Twitter / X</strong>
+            <span>@syntaxsyndicate</span>
+          </div>
+        </a>
+        <a href="https://linkedin.com/company/syntaxsyndicate" target="_blank" rel="noopener" class="contact-method">
+          <div class="contact-method-icon" style="background:rgba(245,197,66,0.1)">
+            <i class="bi bi-linkedin" style="color:#f5c542"></i>
+          </div>
+          <div class="contact-method-text">
+            <strong>LinkedIn</strong>
+            <span>Syntax Syndicate</span>
+          </div>
+        </a>
+        <div class="contact-method" style="cursor:default">
+          <div class="contact-method-icon" style="background:rgba(255,107,138,0.1)">
+            <i class="bi bi-clock-fill" style="color:#ff8fa8"></i>
+          </div>
+          <div class="contact-method-text">
+            <strong>Response Time</strong>
+            <span>Usually within 24–48 hours</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Form -->
+    <div class="contact-form-card">
+      <h3>✉️ Send us a message</h3>
+
+      <div id="form-success" class="form-success">
+        <div class="success-icon">🎉</div>
+        <h3>Message sent!</h3>
+        <p>Thanks for reaching out. We'll get back to you within 24–48 hours.</p>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="resetContactForm()">Send another message</button>
+      </div>
+
+      <div id="contact-form-wrap">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Your Name *</label>
+            <input type="text" id="cf-name" class="form-input" placeholder="Rahul Sharma" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <input type="email" id="cf-email" class="form-input" placeholder="you@example.com" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px">
+          <label class="form-label">Subject *</label>
+          <select id="cf-subject" class="form-select">
+            <option value="">Select a subject</option>
+            <option value="list-opportunity">List an Opportunity</option>
+            <option value="report-issue">Report an Issue</option>
+            <option value="partnership">Partnership / Collaboration</option>
+            <option value="feedback">General Feedback</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-top:16px">
+          <label class="form-label">Message *</label>
+          <textarea id="cf-message" class="form-textarea" rows="5" placeholder="Tell us what's on your mind..."></textarea>
+        </div>
+
+        <div id="cf-error" style="display:none;background:rgba(255,92,122,0.1);border:1px solid rgba(255,92,122,0.3);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--error);margin-top:16px"></div>
+
+        <button class="btn btn-primary btn-full btn-lg" style="margin-top:24px" id="cf-submit">
+          <i class="bi bi-send-fill"></i> Send Message
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="container">
+    <div style="text-align:center;max-width:560px;margin:0 auto">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Common Questions</div>
+      <h2 style="font-size:clamp(24px,3.5vw,36px)">Frequently Asked <span class="accent">Questions</span></h2>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h4>🆓 Is Syntax Syndicate free to use?</h4>
+        <p>Yes, completely. Browsing and applying to opportunities will always be free for developers.</p>
+      </div>
+      <div class="faq-item">
+        <h4>📋 How do I list my company's opportunity?</h4>
+        <p>Send us an email or fill the contact form with "List an Opportunity" as the subject. Our team reviews and publishes it within 48 hours.</p>
+      </div>
+      <div class="faq-item">
+        <h4>✅ How are listings verified?</h4>
+        <p>Every listing is manually reviewed by our admin team before going live. We check that the apply link is active and the information is accurate.</p>
+      </div>
+      <div class="faq-item">
+        <h4>📣 Can I share opportunities I find?</h4>
+        <p>Absolutely! Found something great? Contact us and we'll consider adding it to the platform for the entire community.</p>
+      </div>
+      <div class="faq-item">
+        <h4>🔒 Is my data safe?</h4>
+        <p>Yes. We only store your email, name, and college for account purposes. We never sell your data. Read our <a href="privacy.html" style="color:var(--accent)">Privacy Policy</a>.</p>
+      </div>
+      <div class="faq-item">
+        <h4>🐛 I found a bug, who do I tell?</h4>
+        <p>Please use the contact form and select "Report an Issue". We appreciate every bug report — it helps us improve for everyone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="footer-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+          Syntax Syndicate
+        </div>
+        <p class="footer-desc">Your gateway to the best tech careers, internships, hackathons, and events. Built for developers, by developers.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Opportunities</h4>
+        <ul>
+          <li><a href="opportunities.html?cat=jobs">Jobs</a></li>
+          <li><a href="opportunities.html?cat=internships">Internships</a></li>
+          <li><a href="opportunities.html?cat=hackathons">Hackathons</a></li>
+          <li><a href="opportunities.html?cat=techEvents">Tech Events</a></li>
+          <li><a href="opportunities.html?cat=seminars">Seminars</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <ul>
+          <li><a href="login.html">Login</a></li>
+          <li><a href="signup.html">Sign Up</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="bi bi-c-circle"></i> 2026 Syntax Syndicate. All rights reserved.</p>
+      <p>Made by syntax syndicate, for the dev community <i class="bi bi-code-slash"></i></p>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-container"></div>
+<script type="module">
+  import { initNavbarAuth, showToast } from './js/auth.js';
+  initNavbarAuth();
+
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 20), { passive: true });
+  document.getElementById('nav-toggle')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('open');
+  });
+
+  document.getElementById('cf-submit').addEventListener('click', () => {
+    const name    = document.getElementById('cf-name').value.trim();
+    const email   = document.getElementById('cf-email').value.trim();
+    const subject = document.getElementById('cf-subject').value;
+    const message = document.getElementById('cf-message').value.trim();
+    const errEl   = document.getElementById('cf-error');
+
+    errEl.style.display = 'none';
+
+    if (!name || !email || !subject || !message) {
+      errEl.textContent = 'Please fill in all fields before sending.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Build a mailto link — works without a backend
+    const body = `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`;
+    const mailto = `mailto:hello@syntaxsyndicate.co.in?subject=${encodeURIComponent('[Syntax Syndicate] ' + subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+
+    // Show success state
+    document.getElementById('contact-form-wrap').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  });
+
+  window.resetContactForm = () => {
+    document.getElementById('cf-name').value = '';
+    document.getElementById('cf-email').value = '';
+    document.getElementById('cf-subject').value = '';
+    document.getElementById('cf-message').value = '';
+    document.getElementById('contact-form-wrap').style.display = 'block';
+    document.getElementById('form-success').style.display = 'none';
+  };
+</script>
+</body>
+</html>

@@ -20,7 +20,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // === ENSURE PERSISTENCE IS SET ===
-// This prevents Firebase from losing session on page reload
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 // === TOAST NOTIFICATION ===
@@ -42,12 +41,16 @@ export function showToast(message, type = 'info', duration = 4000) {
 }
 
 // === WRITE USER TO FIRESTORE (with retry) ===
+// Used by signup.html directly — kept here for legacy/fallback use
 async function writeUserToFirestore(uid, email, retries = 3) {
   const userData = {
-    uid: uid,
-    email: email,
-    role: 'user',
-    createdAt: serverTimestamp()
+    uid,
+    email,
+    username:    email.split('@')[0],
+    college:     '',
+    role:        'user',
+    applyClicks: 0,
+    createdAt:   serverTimestamp()
   };
 
   for (let i = 0; i < retries; i++) {
@@ -66,14 +69,22 @@ async function writeUserToFirestore(uid, email, retries = 3) {
   }
 }
 
+// === GET USER DATA FROM FIRESTORE ===
+export async function getUserData(uid) {
+  try {
+    const snap = await getDoc(doc(db, COLLECTIONS.USERS, uid));
+    return snap.exists() ? snap.data() : null;
+  } catch (err) {
+    console.error('Error fetching user data:', err);
+    return null;
+  }
+}
+
 // === GET USER ROLE FROM FIRESTORE ===
 export async function getUserRole(uid) {
   try {
-    const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, uid));
-    if (userDoc.exists()) {
-      return userDoc.data().role || 'user';
-    }
-    return 'user';
+    const data = await getUserData(uid);
+    return data?.role || 'user';
   } catch (err) {
     console.error('Error fetching user role:', err);
     return 'user';
@@ -105,16 +116,11 @@ export function onAuthChange(callback) {
 }
 
 // === REQUIRE AUTH ===
-// Waits for Firebase to fully restore session before deciding to redirect.
-// Uses auth.currentUser first if already available (avoids flicker).
 export function requireAuth(redirectUrl = 'login.html') {
   return new Promise((resolve, reject) => {
-    // If Firebase already has the user loaded, resolve immediately
     if (auth.currentUser) {
       return resolve(auth.currentUser);
     }
-
-    // Otherwise wait for auth state (first emission after session restore)
     const unsub = onAuthStateChanged(auth, (user) => {
       unsub();
       if (user) {
@@ -130,7 +136,6 @@ export function requireAuth(redirectUrl = 'login.html') {
 // === REQUIRE ADMIN ===
 export async function requireAdmin() {
   return new Promise((resolve, reject) => {
-    // If Firebase already has the user loaded, check role immediately
     const checkRole = async (user) => {
       if (!user) {
         window.location.href = 'login.html';
@@ -157,23 +162,39 @@ export async function requireAdmin() {
 
 // === NAVBAR AUTH STATE ===
 export function initNavbarAuth() {
-  const navAuth = document.querySelector('.nav-auth');
+  const navAuth   = document.querySelector('.nav-auth');
   const mobileAuth = document.getElementById('mobile-auth-container');
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const role = await getUserRole(user.uid);
-      const initials = user.email.charAt(0).toUpperCase();
+      const data = await getUserData(user.uid);
+      const role = data?.role || 'user';
+
+      // Prefer stored username, fall back to Auth displayName, then email prefix
+      const displayName = data?.username
+        || user.displayName
+        || user.email.split('@')[0];
+
+      // Initials: up to 2 chars from name words
+      const initials = displayName
+        .trim()
+        .split(/\s+/)
+        .map(w => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+      const college = data?.college ? `<div style="font-size:11px;color:var(--text-muted);margin-top:1px">${data.college}</div>` : '';
 
       // Desktop navbar
       if (navAuth) {
         navAuth.innerHTML = `
           <div class="user-menu">
-            <div class="user-avatar" title="${user.email}">${initials}</div>
+            <div class="user-avatar" title="${displayName}">${initials}</div>
             <div class="user-dropdown">
-              <div class="user-dropdown-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                <span>${user.email.split('@')[0]}</span>
+              <div class="user-dropdown-item" style="flex-direction:column;align-items:flex-start;gap:2px">
+                <span style="font-weight:600;font-size:13px">${displayName}</span>
+                ${college}
               </div>
               <div style="padding:4px 12px;font-size:11px;color:var(--accent);font-weight:600">${role.toUpperCase()}</div>
               <hr>
@@ -196,12 +217,13 @@ export function initNavbarAuth() {
         });
       }
 
-      // Mobile menu auth — show avatar + sign out instead of login/signup buttons
+      // Mobile menu
       if (mobileAuth) {
         mobileAuth.innerHTML = `
-          <div style="padding:8px 14px;font-size:13px;color:var(--text2)">
-            👤 <strong>${user.email.split('@')[0]}</strong>
-            <span style="margin-left:6px;font-size:11px;color:var(--accent);font-weight:600">${role.toUpperCase()}</span>
+          <div style="padding:8px 14px">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">👤 ${displayName}</div>
+            ${data?.college ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${data.college}</div>` : ''}
+            <div style="margin-top:2px;font-size:11px;color:var(--accent);font-weight:600">${role.toUpperCase()}</div>
           </div>
           ${role === 'admin' ? `<a href="admin.html" class="btn btn-secondary" style="flex:1">⚡ Admin</a>` : ''}
           <button class="btn btn-danger" id="mobile-logout-btn" style="flex:1">Sign Out</button>
@@ -215,14 +237,12 @@ export function initNavbarAuth() {
       }
 
     } else {
-      // Not logged in — show login/signup buttons
       if (navAuth) {
         navAuth.innerHTML = `
           <a href="login.html" class="btn btn-ghost">Login</a>
           <a href="signup.html" class="btn btn-primary">Sign Up</a>
         `;
       }
-
       if (mobileAuth) {
         mobileAuth.innerHTML = `
           <a href="login.html" class="btn btn-ghost">Login</a>
@@ -261,10 +281,10 @@ export function truncate(text, max = 120) {
 
 // === CATEGORY ICONS ===
 export const CATEGORY_CONFIG = {
-  ss_jobs: { icon: '💼', label: 'Job', badgeClass: 'badge-job', emoji: '🏢' },
-  ss_internships: { icon: '🎓', label: 'Internship', badgeClass: 'badge-internship', emoji: '📚' },
-  ss_hackathons: { icon: '⚡', label: 'Hackathon', badgeClass: 'badge-hackathon', emoji: '🏆' },
-  ss_techEvents: { icon: '🛠', label: 'Tech Event', badgeClass: 'badge-techEvent', emoji: '💡' },
-  ss_seminars: { icon: '🎤', label: 'Seminar', badgeClass: 'badge-seminar', emoji: '🎓' },
-  ss_courses: { icon: '📖', label: 'Course', badgeClass: 'badge-course', emoji: '🎒' }
+  ss_jobs:       { icon: '💼', label: 'Job',        badgeClass: 'badge-job',       emoji: '🏢' },
+  ss_internships:{ icon: '🎓', label: 'Internship', badgeClass: 'badge-internship', emoji: '📚' },
+  ss_hackathons: { icon: '⚡', label: 'Hackathon',  badgeClass: 'badge-hackathon',  emoji: '🏆' },
+  ss_techEvents: { icon: '🛠', label: 'Tech Event', badgeClass: 'badge-techEvent',  emoji: '💡' },
+  ss_seminars:   { icon: '🎤', label: 'Seminar',    badgeClass: 'badge-seminar',    emoji: '🎓' },
+  ss_courses:    { icon: '📖', label: 'Course',     badgeClass: 'badge-course',     emoji: '🎒' }
 };

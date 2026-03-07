@@ -194,9 +194,15 @@
 <div class="toast-container"></div>
 
 <script type="module">
-  import { db } from './js/firebase.js';
+  import { db, auth, COLLECTIONS } from './js/firebase.js';
   import { initNavbarAuth, requireAuth, showToast, formatDate, timeAgo, CATEGORY_CONFIG } from './js/auth.js';
-  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    doc,
+    getDoc,
+    updateDoc,
+    increment
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   initNavbarAuth();
 
@@ -238,6 +244,24 @@
       console.error(err);
       showError();
     }
+  }
+
+  // === TRACK APPLY CLICK ===
+  // Increments applyClicks counter on the user's Firestore document
+  async function trackApplyClick() {
+    return new Promise((resolve) => {
+      const unsub = onAuthStateChanged(auth, async (user) => {
+        unsub();
+        if (!user) return resolve(); // not logged in, skip tracking
+        try {
+          const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+          await updateDoc(userRef, { applyClicks: increment(1) });
+        } catch (err) {
+          console.warn('Could not track apply click:', err.message);
+        }
+        resolve();
+      });
+    });
   }
 
   function renderPost(post) {
@@ -321,7 +345,7 @@
       </div>`
     ).join('');
 
-    // Apply button — requires login
+    // Apply button — requires login + tracks click
     const applyBtn = document.getElementById('apply-btn');
     if (post.applyLink) {
       const btnLabel = post._collection === 'hackathons' || post._collection === 'techEvents' || post._collection === 'seminars'
@@ -334,6 +358,8 @@
         e.preventDefault();
         try {
           await requireAuth(`login.html?redirect=${encodeURIComponent(location.href)}`);
+          // Track the click BEFORE opening the link
+          await trackApplyClick();
           window.open(post.applyLink, '_blank', 'noopener,noreferrer');
         } catch {
           // requireAuth already redirected to login

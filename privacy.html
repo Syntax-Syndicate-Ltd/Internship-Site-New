@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Syntax Syndicate</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+.mobile-nav-auth { display:flex; flex-direction:column; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); width:100%; }
+.mobile-nav-auth .btn { width:100%; justify-content:center; text-align:center; }
+
+.page-hero {
+  padding: 80px 0 50px;
+  text-align: center;
+}
+.page-hero h1 { font-size: clamp(28px, 5vw, 48px); margin-bottom: 12px; }
+.page-hero p  { font-size: 15px; color: var(--text-muted); }
+
+.privacy-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 48px;
+  padding: 48px 0 80px;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .privacy-layout { grid-template-columns: 1fr; }
+  .privacy-toc { display: none; }
+}
+
+/* Sticky TOC */
+.privacy-toc {
+  position: sticky;
+  top: 80px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.privacy-toc h4 { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; }
+.privacy-toc a  {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  margin-bottom: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+.privacy-toc a:hover { background: var(--glass-border); color: var(--text); }
+
+/* Prose */
+.privacy-prose h2 {
+  font-size: 22px;
+  margin: 40px 0 14px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+}
+.privacy-prose h2:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.privacy-prose p  { font-size: 14px; color: var(--text-muted); line-height: 1.85; margin-bottom: 14px; }
+.privacy-prose ul { margin: 12px 0 16px 20px; }
+.privacy-prose li { font-size: 14px; color: var(--text-muted); line-height: 1.8; margin-bottom: 4px; }
+.privacy-prose a  { color: var(--accent); text-decoration: none; }
+.privacy-prose a:hover { text-decoration: underline; }
+
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(61,232,160,0.1);
+  border: 1px solid rgba(61,232,160,0.2);
+  border-radius: 100px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #3de8a0;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+      Syntax Syndicate
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="nav-link">Home</a></li>
+      <li><a href="opportunities.html" class="nav-link">Opportunities</a></li>
+      <li><a href="about.html" class="nav-link">About</a></li>
+    </ul>
+    <div class="nav-auth" id="nav-auth-container">
+      <a href="login.html" class="btn btn-ghost">Login</a>
+      <a href="signup.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Sign Up</a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <ul class="mobile-nav-links">
+    <li><a href="index.html" class="mobile-nav-link"><i class="bi bi-house me-2"></i> Home</a></li>
+    <li><a href="opportunities.html" class="mobile-nav-link"><i class="bi bi-grid-3x3-gap me-2"></i> Opportunities</a></li>
+    <li><a href="about.html" class="mobile-nav-link"><i class="bi bi-info-circle me-2"></i> About</a></li>
+  </ul>
+  <div class="mobile-nav-auth" id="mobile-auth-container"></div>
+</div>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <h1>🔒 Privacy Policy</h1>
+    <p>Last updated: March 2026 &nbsp;·&nbsp; Effective immediately</p>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="container">
+  <div class="privacy-layout">
+
+    <!-- TOC -->
+    <nav class="privacy-toc">
+      <h4>On this page</h4>
+      <a href="#overview">Overview</a>
+      <a href="#data-collected">Data We Collect</a>
+      <a href="#how-we-use">How We Use It</a>
+      <a href="#data-storage">Data Storage</a>
+      <a href="#third-parties">Third Parties</a>
+      <a href="#your-rights">Your Rights</a>
+      <a href="#cookies">Cookies</a>
+      <a href="#children">Children's Privacy</a>
+      <a href="#changes">Changes to Policy</a>
+      <a href="#contact">Contact Us</a>
+    </nav>
+
+    <!-- Prose -->
+    <div class="privacy-prose">
+      <div class="privacy-badge">
+        <i class="bi bi-shield-check-fill"></i>
+        We don't sell your data. Ever.
+      </div>
+
+      <h2 id="overview">Overview</h2>
+      <p>Syntax Syndicate ("we", "us", or "our") is committed to protecting your personal information. This Privacy Policy explains how we collect, use, and safeguard the data you provide when you use our platform at <a href="https://syntaxsyndicate.co.in">syntaxsyndicate.co.in</a>.</p>
+      <p>By creating an account or using our services, you agree to the collection and use of information as described in this policy. If you do not agree, please do not use the platform.</p>
+
+      <h2 id="data-collected">Data We Collect</h2>
+      <p>We collect only the minimum data necessary to provide our service:</p>
+      <ul>
+        <li><strong>Account information:</strong> Your full name, college or institution, and email address — collected when you sign up.</li>
+        <li><strong>Usage data:</strong> A count of how many times you click an "Apply Now" button. This is stored as a simple number against your account and is used only for internal analytics.</li>
+        <li><strong>Authentication data:</strong> Firebase Authentication securely handles your password. We never store passwords in plain text.</li>
+      </ul>
+      <p>We do <strong>not</strong> collect your phone number, physical address, payment information, or any sensitive personal data.</p>
+
+      <h2 id="how-we-use">How We Use Your Data</h2>
+      <p>We use the information we collect to:</p>
+      <ul>
+        <li>Create and manage your account on Syntax Syndicate.</li>
+        <li>Display your name and college in the navigation bar and admin panel.</li>
+        <li>Track aggregate apply-button usage to understand which opportunities are popular (internal analytics only — never shared externally).</li>
+        <li>Restrict admin-only areas of the platform to verified administrators.</li>
+        <li>Communicate with you if you contact us directly via email or the contact form.</li>
+      </ul>
+      <p>We do <strong>not</strong> use your data for advertising, profiling, or any automated decision-making.</p>
+
+      <h2 id="data-storage">Data Storage &amp; Security</h2>
+      <p>All user data is stored in Google Firebase Firestore, a cloud database service operated by Google LLC. Firebase uses industry-standard encryption in transit (TLS) and at rest. Our Firestore security rules ensure that users can only read and write their own data, and only admins can access the full users collection.</p>
+      <p>While we take all reasonable precautions to protect your data, no system is 100% secure. We encourage you to use a strong, unique password for your account.</p>
+
+      <h2 id="third-parties">Third-Party Services</h2>
+      <p>We use the following third-party services to operate Syntax Syndicate:</p>
+      <ul>
+        <li><strong>Google Firebase</strong> — Authentication, Firestore database, and hosting. Governed by <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
+        <li><strong>Bootstrap Icons (CDN)</strong> — Icon font loaded from a CDN. No personal data is transmitted.</li>
+      </ul>
+      <p>When you click an "Apply Now" link, you are redirected to an external website (e.g., a company's careers page). We are not responsible for the privacy practices of those external sites.</p>
+
+      <h2 id="your-rights">Your Rights</h2>
+      <p>You have the following rights regarding your personal data:</p>
+      <ul>
+        <li><strong>Access:</strong> You can request a copy of the data we hold about you.</li>
+        <li><strong>Correction:</strong> You can request that we correct inaccurate information.</li>
+        <li><strong>Deletion:</strong> You can request that we delete your account and all associated data.</li>
+        <li><strong>Portability:</strong> You can request your data in a machine-readable format.</li>
+      </ul>
+      <p>To exercise any of these rights, email us at <a href="mailto:hello@syntaxsyndicate.co.in">hello@syntaxsyndicate.co.in</a>. We will respond within 30 days.</p>
+
+      <h2 id="cookies">Cookies &amp; Local Storage</h2>
+      <p>We use Firebase Authentication, which stores a session token in your browser's local storage to keep you logged in across page visits. This is a functional necessity — not a tracking cookie. We do not use any third-party advertising cookies or analytics cookies.</p>
+      <p>You can clear your browser's local storage at any time to sign out of all sessions.</p>
+
+      <h2 id="children">Children's Privacy</h2>
+      <p>Syntax Syndicate is not directed at children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal data, please contact us and we will delete it promptly.</p>
+
+      <h2 id="changes">Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. When we do, we will update the "Last updated" date at the top of this page. Continued use of the platform after changes are posted constitutes your acceptance of the revised policy. We encourage you to review this page periodically.</p>
+
+      <h2 id="contact">Contact Us</h2>
+      <p>If you have any questions, concerns, or requests regarding this Privacy Policy, please reach out to us:</p>
+      <ul>
+        <li><strong>Email:</strong> <a href="mailto:hello@syntaxsyndicate.co.in">hello@syntaxsyndicate.co.in</a></li>
+        <li><strong>Contact form:</strong> <a href="contact.html">syntaxsyndicate.co.in/contact.html</a></li>
+      </ul>
+      <p style="margin-top:32px;padding:20px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;font-size:13px">
+        <strong>TL;DR:</strong> We collect your name, college, and email to run your account. We track how many times you click Apply to understand usage. We never sell your data, never show you ads, and you can delete your account any time by emailing us.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="footer-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+          Syntax Syndicate
+        </div>
+        <p class="footer-desc">Your gateway to the best tech careers, internships, hackathons, and events. Built for developers, by developers.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Opportunities</h4>
+        <ul>
+          <li><a href="opportunities.html?cat=jobs">Jobs</a></li>
+          <li><a href="opportunities.html?cat=internships">Internships</a></li>
+          <li><a href="opportunities.html?cat=hackathons">Hackathons</a></li>
+          <li><a href="opportunities.html?cat=techEvents">Tech Events</a></li>
+          <li><a href="opportunities.html?cat=seminars">Seminars</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <ul>
+          <li><a href="login.html">Login</a></li>
+          <li><a href="signup.html">Sign Up</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p><i class="bi bi-c-circle"></i> 2026 Syntax Syndicate. All rights reserved.</p>
+      <p>Made by syntax syndicate, for the dev community <i class="bi bi-code-slash"></i></p>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-container"></div>
+<script type="module">
+  import { initNavbarAuth } from './js/auth.js';
+  initNavbarAuth();
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 20), { passive: true });
+  document.getElementById('nav-toggle')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('open');
+  });
+</script>
+</body>
+</html>

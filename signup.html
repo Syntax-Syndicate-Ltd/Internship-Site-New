@@ -24,13 +24,28 @@
     <p class="auth-subtitle">Join thousands of developers finding their next opportunity</p>
 
     <form id="signup-form">
+
+      <!-- Full Name -->
       <div class="form-group">
-        <label class="form-label">Email Address</label>
+        <label class="form-label">Full Name *</label>
+        <input type="text" id="username" class="form-input" placeholder="e.g. Rahul Sharma" required autocomplete="name">
+      </div>
+
+      <!-- College / Institution -->
+      <div class="form-group">
+        <label class="form-label">College / Institution *</label>
+        <input type="text" id="college" class="form-input" placeholder="e.g. IIT Bombay, VIT Pune" required autocomplete="organization">
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
         <input type="email" id="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
       </div>
 
+      <!-- Password -->
       <div class="form-group">
-        <label class="form-label">Password</label>
+        <label class="form-label">Password *</label>
         <div style="position:relative">
           <input type="password" id="password" class="form-input" placeholder="Create a strong password" required autocomplete="new-password" style="padding-right:48px">
           <button type="button" id="toggle-pw" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px">👁</button>
@@ -41,8 +56,9 @@
         <p id="pw-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px"></p>
       </div>
 
+      <!-- Confirm Password -->
       <div class="form-group">
-        <label class="form-label">Confirm Password</label>
+        <label class="form-label">Confirm Password *</label>
         <input type="password" id="confirm-password" class="form-input" placeholder="Confirm your password" required autocomplete="new-password">
       </div>
 
@@ -54,7 +70,8 @@
       </button>
 
       <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:14px">
-        By signing up, you agree to our Terms of Service and Privacy Policy.
+        By signing up, you agree to our
+        <a href="privacy.html" style="color:var(--accent-1)">Privacy Policy</a>.
       </p>
     </form>
 
@@ -74,7 +91,8 @@
   import { showToast, getUserRole } from './js/auth.js';
   import {
     createUserWithEmailAndPassword,
-    onAuthStateChanged
+    onAuthStateChanged,
+    updateProfile
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import {
     doc,
@@ -82,11 +100,8 @@
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ⚠️ FLAG: track if we are currently signing up
-  // This prevents onAuthStateChanged from redirecting before Firestore write is done
   let isSigningUp = false;
 
-  // Only redirect if already logged in AND we are NOT in the middle of signing up
   onAuthStateChanged(auth, async (user) => {
     if (user && !isSigningUp) {
       const role = await getUserRole(user.uid);
@@ -121,20 +136,31 @@
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById('email').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const college  = document.getElementById('college').value.trim();
+    const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const confirm = document.getElementById('confirm-password').value;
-    const btn = document.getElementById('submit-btn');
-    const errEl = document.getElementById('error-msg');
+    const confirm  = document.getElementById('confirm-password').value;
+    const btn      = document.getElementById('submit-btn');
+    const errEl    = document.getElementById('error-msg');
 
     errEl.style.display = 'none';
 
+    if (!username) {
+      errEl.textContent = 'Please enter your full name.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!college) {
+      errEl.textContent = 'Please enter your college or institution.';
+      errEl.style.display = 'block';
+      return;
+    }
     if (password !== confirm) {
       errEl.textContent = 'Passwords do not match.';
       errEl.style.display = 'block';
       return;
     }
-
     if (password.length < 6) {
       errEl.textContent = 'Password must be at least 6 characters.';
       errEl.style.display = 'block';
@@ -143,25 +169,26 @@
 
     btn.textContent = 'Creating account...';
     btn.disabled = true;
-
-    // Set flag BEFORE creating auth user so onAuthStateChanged doesn't redirect prematurely
     isSigningUp = true;
 
     try {
       // Step 1: Create Firebase Auth user
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('✅ Auth user created:', cred.user.uid);
 
-      // Step 2: Write user doc to Firestore BEFORE redirecting
+      // Step 2: Set displayName in Firebase Auth
+      await updateProfile(cred.user, { displayName: username });
+
+      // Step 3: Write full user doc to Firestore
       await setDoc(doc(db, COLLECTIONS.USERS, cred.user.uid), {
-        uid: cred.user.uid,
-        email: email,
-        role: 'user',
-        createdAt: serverTimestamp()
+        uid:         cred.user.uid,
+        email:       email,
+        username:    username,
+        college:     college,
+        role:        'user',
+        applyClicks: 0,
+        createdAt:   serverTimestamp()
       });
-      console.log('✅ Firestore user document created for:', cred.user.uid);
 
-      // Step 3: Now safe to redirect
       showToast('Account created! Welcome to Syntax Syndicate 🎉', 'success');
       setTimeout(() => {
         isSigningUp = false;
@@ -174,9 +201,9 @@
 
       let msg = 'Signup failed. Please try again.';
       if (err.code === 'auth/email-already-in-use') msg = 'This email is already registered. Try logging in.';
-      else if (err.code === 'auth/invalid-email') msg = 'Please enter a valid email address.';
-      else if (err.code === 'auth/weak-password') msg = 'Password is too weak. Use at least 6 characters.';
-      else if (err.code === 'permission-denied') msg = 'Database permission denied. Check Firestore rules.';
+      else if (err.code === 'auth/invalid-email')   msg = 'Please enter a valid email address.';
+      else if (err.code === 'auth/weak-password')   msg = 'Password is too weak. Use at least 6 characters.';
+      else if (err.code === 'permission-denied')    msg = 'Database permission denied. Check Firestore rules.';
 
       errEl.textContent = msg;
       errEl.style.display = 'block';

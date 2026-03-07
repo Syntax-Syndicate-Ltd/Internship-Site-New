@@ -56,7 +56,7 @@
   /* Main content takes full width */
   .admin-main {
     margin-left: 0;
-    padding: 70px 16px 40px; /* top padding for toggle button */
+    padding: 70px 16px 40px;
   }
 
   /* Toggle button visible */
@@ -81,12 +81,6 @@
     font-size: 26px;
   }
 
-  /* Quick actions wrap and go full width */
-  .admin-section #section-dashboard [style*="display:flex"] {
-    flex-direction: column;
-  }
-
-  /* Form card full width */
   .form-card {
     padding: 20px 16px;
     max-width: 100%;
@@ -95,7 +89,6 @@
     font-size: 17px;
   }
 
-  /* Form grid: single column */
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -103,7 +96,6 @@
     grid-column: 1;
   }
 
-  /* Manage posts table — horizontal scroll */
   .posts-table-wrap {
     border-radius: var(--r-md);
   }
@@ -134,7 +126,6 @@
     padding: 5px 10px;
   }
 
-  /* Edit modal full screen on mobile */
   .modal-overlay {
     padding: 12px;
     align-items: flex-end;
@@ -150,13 +141,10 @@
   }
 }
 
-/* Extra small screens */
 @media (max-width: 480px) {
-
   .admin-main {
     padding: 65px 12px 40px;
   }
-
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
@@ -170,20 +158,14 @@
   .stat-label {
     font-size: 11px;
   }
-
-  /* Sidebar bottom section */
   .sidebar-bottom {
     padding-bottom: 24px;
   }
-
-  /* Form inputs */
   .form-input,
   .form-textarea,
   .form-select {
-    font-size: 16px; /* prevents iOS zoom on focus */
+    font-size: 16px;
   }
-
-  /* Buttons in form */
   .form-card [style*="display:flex"] {
     flex-direction: column;
   }
@@ -192,12 +174,7 @@
     justify-content: center;
   }
 }
-/* ============================================
-   MANAGE POSTS — MOBILE RESPONSIVE
-   Paste at the bottom of your style.css
-============================================ */
 
-/* Filter bar stacks on mobile */
 @media (max-width: 768px) {
   .posts-filter-bar {
     flex-direction: column;
@@ -211,23 +188,16 @@
   }
 }
 
-/* ── Card layout for table on mobile ── */
 @media (max-width: 640px) {
-
-  /* Hide the table header */
   .posts-table thead {
     display: none;
   }
-
-  /* Make table block */
   .posts-table,
   .posts-table tbody,
   .posts-table tr {
     display: block;
     width: 100%;
   }
-
-  /* Each row = a card */
   .posts-table tbody tr {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -241,8 +211,6 @@
     border-color: var(--border2);
     background: var(--surface2);
   }
-
-  /* Each cell: label + value side by side */
   .posts-table td {
     display: flex;
     align-items: flex-start;
@@ -253,8 +221,6 @@
     background: none;
     white-space: normal;
   }
-
-  /* Auto label from data-label attribute */
   .posts-table td[data-label]::before {
     content: attr(data-label);
     font-size: 11px;
@@ -266,8 +232,6 @@
     flex-shrink: 0;
     padding-top: 2px;
   }
-
-  /* Title — bigger, no label */
   .posts-table td:first-child {
     font-weight: 600;
     font-size: 14px;
@@ -279,8 +243,6 @@
   .posts-table td:first-child::before {
     display: none;
   }
-
-  /* Actions row — buttons go full width side by side */
   .posts-table td:last-child {
     margin-top: 8px;
     padding-top: 10px;
@@ -297,10 +259,81 @@
     font-size: 12px;
     padding: 8px 10px;
   }
-
-  /* Disable horizontal scroll on mobile */
   .posts-table-wrap > div[style*="overflow-x"] {
     overflow-x: visible !important;
+  }
+}
+
+/* ===================================================
+   USERS TABLE
+=================================================== */
+@keyframes fadeInRow {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.users-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 360px;
+}
+.users-search-wrap svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.users-search-wrap input {
+  padding-left: 36px;
+  width: 100%;
+}
+
+.users-table thead th {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .users-table thead {
+    display: none;
+  }
+  .users-table,
+  .users-table tbody,
+  .users-table tr {
+    display: block;
+    width: 100%;
+  }
+  .users-table tbody tr {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin: 0 0 10px 0;
+    padding: 14px;
+  }
+  .users-table td {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 13px;
+    border: none;
+    background: none;
+    white-space: normal;
+  }
+  .users-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    min-width: 76px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .users-table td:first-child::before {
+    display: none;
   }
 }
 </style>
@@ -361,6 +394,10 @@
   <a class="sidebar-link" data-section="manage" href="#">
     <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     Manage Posts
+  </a>
+  <a class="sidebar-link" data-section="users" href="#">
+    <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Users
   </a>
 
   <div class="sidebar-bottom">
@@ -427,6 +464,11 @@
         <div class="stat-value" id="stat-ads">—</div>
         <div class="stat-label">Active Ads</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="stat-users">—</div>
+        <div class="stat-label">Registered Users</div>
+      </div>
     </div>
 
     <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-xl);padding:32px">
@@ -436,6 +478,7 @@
         <button class="btn btn-secondary" onclick="document.querySelector('[data-section=add-internship]').click()">+ Add Internship</button>
         <button class="btn btn-secondary" onclick="document.querySelector('[data-section=add-hackathon]').click()">+ Add Hackathon</button>
         <button class="btn btn-secondary" onclick="document.querySelector('[data-section=manage]').click()">Manage Posts</button>
+        <button class="btn btn-secondary" onclick="document.querySelector('[data-section=users]').click()">👥 View Users</button>
       </div>
     </div>
   </div>
@@ -859,6 +902,70 @@
     </div>
   </div>
 
+  <!-- ===== USERS ===== -->
+  <div class="admin-section" id="section-users">
+    <div class="admin-header">
+      <h1>Users 👥</h1>
+      <p>All registered users, their emails, roles, and apply button activity.</p>
+    </div>
+
+    <!-- Summary stat mini-cards -->
+    <div class="stats-grid" style="margin-bottom:28px;grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="users-total-count">—</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value" id="users-admin-count">—</div>
+        <div class="stat-label">Admins</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🖱️</div>
+        <div class="stat-value" id="users-total-clicks">—</div>
+        <div class="stat-label">Total Apply Clicks</div>
+      </div>
+    </div>
+
+    <div class="posts-table-wrap">
+      <!-- Toolbar: search + refresh -->
+      <div class="posts-filter-bar" style="gap:12px">
+        <div class="users-search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text"
+            id="users-search"
+            class="form-input"
+            placeholder="Search by name, email or role…"
+          >
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="window.refreshUsersTable()">🔄 Refresh</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="posts-table users-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Apply Clicks</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr>
+              <td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">
+                Loading users…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </main>
 </div>
 
@@ -879,37 +986,45 @@
 
 <script type="module">
   import './js/admin.js';
+
   // Expose loadManagePosts for refresh button
   window.loadManagePostsPublic = () => {
     document.getElementById('manage-filter')?.dispatchEvent(new Event('change'));
   };
 
+  // Expose refreshUsersTable for the Users refresh button
+  window.refreshUsersTable = () => {
+    // Re-trigger by dispatching a custom event or just re-clicking the sidebar link
+    document.querySelector('[data-section="users"]')?.click();
+  };
+
   /**
- * AUTO DATA-LABEL FOR MOBILE TABLE CARDS
- * 
- * Paste this INSIDE the <script type="module"> in admin.html,
- * BEFORE the `import './js/admin.js'` line.
- * 
- * It watches the tbody for changes and automatically adds
- * data-label attributes to each <td> based on the <thead> columns,
- * so the CSS card layout can show "Type", "Company" etc as labels.
- */
-
-function labelTableRows(table) {
-  const headers = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
-  table.querySelectorAll('tbody tr').forEach(row => {
-    row.querySelectorAll('td').forEach((td, i) => {
-      if (headers[i]) td.setAttribute('data-label', headers[i]);
+   * AUTO DATA-LABEL FOR MOBILE TABLE CARDS
+   * Watches tbodies for changes and adds data-label attrs
+   * so the CSS card layout shows column names as labels.
+   */
+  function labelTableRows(table) {
+    const headers = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach(row => {
+      row.querySelectorAll('td').forEach((td, i) => {
+        if (headers[i]) td.setAttribute('data-label', headers[i]);
+      });
     });
-  });
-}
+  }
 
-// Run whenever rows are added to tbody (admin.js loads them dynamically)
-const postsTable = document.querySelector('.posts-table');
-if (postsTable) {
-  const observer = new MutationObserver(() => labelTableRows(postsTable));
-  observer.observe(postsTable.querySelector('tbody'), { childList: true, subtree: true });
-}
+  // Watch posts table
+  const postsTable = document.querySelector('.posts-table');
+  if (postsTable) {
+    const observer = new MutationObserver(() => labelTableRows(postsTable));
+    observer.observe(postsTable.querySelector('tbody'), { childList: true, subtree: true });
+  }
+
+  // Watch users table
+  const usersTable = document.querySelector('.users-table');
+  if (usersTable) {
+    const observer = new MutationObserver(() => labelTableRows(usersTable));
+    observer.observe(usersTable.querySelector('tbody'), { childList: true, subtree: true });
+  }
 </script>
 </body>
 </html>
