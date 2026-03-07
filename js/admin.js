@@ -6,30 +6,73 @@
 import { auth, db, COLLECTIONS } from './firebase.js';
 import { requireAdmin, showToast, formatDate, CATEGORY_CONFIG } from './auth.js';
 import {
-  collection,
-  addDoc,
-  getDocs,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  query,
-  orderBy
+  collection, addDoc, getDocs, getDoc,
+  updateDoc, deleteDoc, doc,
+  serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// === STATE ===
-let currentUser = null;
-let allPosts = [];
+// =============================================
+// IN-MEMORY CACHE
+// All Firestore data is fetched ONCE per session.
+// Switching between dashboard / manage / users
+// reuses the cached data instantly — zero extra reads.
+// Cache busts only when you add/edit/delete a post.
+// =============================================
+const cache = {
+  posts:   null,  // flat array of every post doc across all collections
+  users:   null,  // array of user docs
+  postsTs: 0,
+  usersTs: 0,
+  TTL:     60_000 // allow forced refresh after 60 s
+};
+const isFresh = ts => Date.now() - ts < cache.TTL;
+const bustPosts = () => { cache.posts = null; cache.postsTs = 0; };
+const bustUsers = () => { cache.users = null; cache.usersTs = 0; };
 
-// === INIT ===
+const POST_COLS = [
+  COLLECTIONS.JOBS, COLLECTIONS.INTERNSHIPS, COLLECTIONS.HACKATHONS,
+  COLLECTIONS.TECH_EVENTS, COLLECTIONS.SEMINARS, COLLECTIONS.COURSES, COLLECTIONS.ADS
+];
+
+// Fetch all post collections in parallel, cache result
+async function fetchAllPosts(force = false) {
+  if (!force && cache.posts && isFresh(cache.postsTs)) return cache.posts;
+
+  const results = await Promise.all(
+    POST_COLS.map(col =>
+      getDocs(collection(db, col))
+        .then(snap => snap.docs.map(d => ({ id: d.id, _col: col, ...d.data() })))
+        .catch(() => [])  // skip silently if a collection doesn't exist yet
+    )
+  );
+
+  cache.posts   = results.flat();
+  cache.postsTs = Date.now();
+  return cache.posts;
+}
+
+// Fetch users collection, cache result
+async function fetchAllUsers(force = false) {
+  if (!force && cache.users && isFresh(cache.usersTs)) return cache.users;
+
+  const snap  = await getDocs(collection(db, COLLECTIONS.USERS));
+  const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  users.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+  cache.users   = users;
+  cache.usersTs = Date.now();
+  return cache.users;
+}
+
+// =============================================
+let currentUser = null;
+
 async function init() {
   try {
     const { user } = await requireAdmin();
     currentUser = user;
     document.getElementById('admin-email').textContent = user.email;
-    loadDashboard();
     initNav();
     initForms();
     initMobileMenu();
@@ -39,7 +82,6 @@ async function init() {
   }
 }
 
-// === SIDEBAR NAVIGATION ===
 function initNav() {
   document.querySelectorAll('.sidebar-link[data-section]').forEach(link => {
     link.addEventListener('click', e => {
@@ -48,7 +90,6 @@ function initNav() {
       closeMobileSidebar();
     });
   });
-
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await signOut(auth);
     window.location.href = 'index.html';
@@ -61,122 +102,81 @@ function showSection(id) {
   document.getElementById(`section-${id}`)?.classList.add('active');
   document.querySelector(`.sidebar-link[data-section="${id}"]`)?.classList.add('active');
 
-  if (id === 'manage')    loadManagePosts();
   if (id === 'dashboard') loadDashboard();
+  if (id === 'manage')    loadManagePosts();
   if (id === 'users')     loadUsersTable();
 }
 
-// === DASHBOARD ===
+// =============================================
+// DASHBOARD — derives counts from cached posts
+// =============================================
 async function loadDashboard() {
-  const cols = [
-    { col: COLLECTIONS.JOBS,        id: 'stat-jobs' },
-    { col: COLLECTIONS.INTERNSHIPS, id: 'stat-internships' },
-    { col: COLLECTIONS.HACKATHONS,  id: 'stat-hackathons' },
-    { col: COLLECTIONS.TECH_EVENTS, id: 'stat-techevents' },
-    { col: COLLECTIONS.SEMINARS,    id: 'stat-seminars' },
-    { col: COLLECTIONS.COURSES,     id: 'stat-courses' },
-    { col: COLLECTIONS.ADS,         id: 'stat-ads' }
-  ];
+  // Fetch posts + users simultaneously (both cached after first load)
+  const [posts, users] = await Promise.all([fetchAllPosts(), fetchAllUsers()]);
+
+  const countMap = {};
+  posts.forEach(p => { countMap[p._col] = (countMap[p._col] || 0) + 1; });
+
+  const colStatMap = {
+    [COLLECTIONS.JOBS]:        'stat-jobs',
+    [COLLECTIONS.INTERNSHIPS]: 'stat-internships',
+    [COLLECTIONS.HACKATHONS]:  'stat-hackathons',
+    [COLLECTIONS.TECH_EVENTS]: 'stat-techevents',
+    [COLLECTIONS.SEMINARS]:    'stat-seminars',
+    [COLLECTIONS.COURSES]:     'stat-courses',
+    [COLLECTIONS.ADS]:         'stat-ads'
+  };
 
   let total = 0;
-  for (const { col, id } of cols) {
-    try {
-      const snap = await getDocs(collection(db, col));
-      const count = snap.size;
-      total += count;
-      const el = document.getElementById(id);
-      if (el) el.textContent = count;
-    } catch { /* skip */ }
-  }
+  Object.entries(colStatMap).forEach(([col, statId]) => {
+    const count = countMap[col] || 0;
+    const el = document.getElementById(statId);
+    if (el) el.textContent = count;
+    if (col !== COLLECTIONS.ADS) total += count;
+  });
+
   const totalEl = document.getElementById('stat-total');
   if (totalEl) totalEl.textContent = total;
 
-  try {
-    const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS));
-    const usersEl = document.getElementById('stat-users');
-    if (usersEl) usersEl.textContent = usersSnap.size;
-  } catch { /* skip */ }
+  const usersEl = document.getElementById('stat-users');
+  if (usersEl) usersEl.textContent = users.length;
 }
 
-// === USERS TABLE ===
+// =============================================
+// USERS TABLE
+// =============================================
 async function loadUsersTable() {
-  const tbody      = document.getElementById('users-tbody');
+  const tbody       = document.getElementById('users-tbody');
   const searchInput = document.getElementById('users-search');
   if (!tbody) return;
 
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">
-        <div style="font-size:24px;margin-bottom:8px">⏳</div>
-        Loading users...
-      </td>
-    </tr>`;
-
-  let allUsers = [];
-
-  try {
-    // Try ordered fetch first; fall back to unordered if index missing
-    let snap;
-    try {
-      snap = await getDocs(query(collection(db, COLLECTIONS.USERS), orderBy('createdAt', 'desc')));
-    } catch {
-      snap = await getDocs(collection(db, COLLECTIONS.USERS));
-    }
-    allUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-  } catch (err) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">
-          Failed to load users: ${err.message}
-        </td>
-      </tr>`;
-    return;
+  if (!cache.users) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">Loading users…</td></tr>`;
   }
 
-  function renderUsers(users) {
-    if (users.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">
-            No users found
-          </td>
-        </tr>`;
+  const allUsers = await fetchAllUsers();
+
+  function renderUsers(list) {
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No users found</td></tr>`;
       return;
     }
-
-    tbody.innerHTML = users.map((user, i) => {
-      // Best available name: stored username > email prefix
-      const nameRaw = user.username || user.displayName || user.name
+    tbody.innerHTML = list.map((user, i) => {
+      const nameRaw   = user.username || user.displayName || user.name
         || (user.email ? user.email.split('@')[0].replace(/[._-]/g, ' ') : 'Unknown');
-
       const nameLabel = nameRaw.replace(/\b\w/g, c => c.toUpperCase());
-
-      const initials = nameRaw
-        .trim()
-        .split(/\s+/)
-        .map(w => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2) || '?';
-
-      const college = user.college
-        ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">🏫 ${user.college}</div>`
-        : '';
-
+      const initials  = nameRaw.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+      const college   = user.college ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">🏫 ${user.college}</div>` : '';
       const roleBadge = user.role === 'admin'
-        ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(124,111,255,0.15);color:#a89fff;letter-spacing:0.5px">⚡ ADMIN</span>`
-        : `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.06);color:var(--text-muted);letter-spacing:0.3px">👤 USER</span>`;
-
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(124,111,255,0.15);color:#a89fff">⚡ ADMIN</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.06);color:var(--text-muted)">👤 USER</span>`;
       const applyCount = user.applyClicks || 0;
       const applyBadge = applyCount > 0
-        ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(61,232,160,0.12);color:#3de8a0">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            ${applyCount} click${applyCount !== 1 ? 's' : ''}
-          </span>`
+        ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(61,232,160,0.12);color:#3de8a0">✓ ${applyCount} click${applyCount !== 1 ? 's' : ''}</span>`
         : `<span style="color:var(--text-muted);font-size:12px">—</span>`;
 
       return `
-        <tr style="animation:fadeInRow 0.2s ease ${i * 0.03}s both">
+        <tr style="animation:fadeInRow 0.15s ease ${Math.min(i,10)*0.02}s both">
           <td>
             <div style="display:flex;align-items:center;gap:12px">
               <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff6b8a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0">${initials}</div>
@@ -196,125 +196,27 @@ async function loadUsersTable() {
 
   renderUsers(allUsers);
 
-  // Live search
   if (searchInput) {
     searchInput.oninput = () => {
       const q = searchInput.value.toLowerCase().trim();
-      if (!q) return renderUsers(allUsers);
-      renderUsers(allUsers.filter(u =>
+      renderUsers(q ? allUsers.filter(u =>
         (u.username || '').toLowerCase().includes(q) ||
         (u.email    || '').toLowerCase().includes(q) ||
         (u.college  || '').toLowerCase().includes(q) ||
         (u.role     || '').toLowerCase().includes(q)
-      ));
+      ) : allUsers);
     };
   }
 
-  // Summary stats
-  const el = id => document.getElementById(id);
-  if (el('users-total-count')) el('users-total-count').textContent = allUsers.length;
-  if (el('users-admin-count')) el('users-admin-count').textContent = allUsers.filter(u => u.role === 'admin').length;
-  if (el('users-total-clicks')) el('users-total-clicks').textContent = allUsers.reduce((s, u) => s + (u.applyClicks || 0), 0);
+  const g = id => document.getElementById(id);
+  if (g('users-total-count'))  g('users-total-count').textContent  = allUsers.length;
+  if (g('users-admin-count'))  g('users-admin-count').textContent  = allUsers.filter(u => u.role === 'admin').length;
+  if (g('users-total-clicks')) g('users-total-clicks').textContent = allUsers.reduce((s, u) => s + (u.applyClicks || 0), 0);
 }
 
-// === FORM INITIALIZATION ===
-function initForms() {
-  setupForm('form-job',        COLLECTIONS.JOBS,        buildJobData);
-  setupForm('form-internship', COLLECTIONS.INTERNSHIPS, buildInternshipData);
-  setupForm('form-hackathon',  COLLECTIONS.HACKATHONS,  buildHackathonData);
-  setupForm('form-techevent',  COLLECTIONS.TECH_EVENTS, buildTechEventData);
-  setupForm('form-seminar',    COLLECTIONS.SEMINARS,    buildSeminarData);
-  setupForm('form-course',     COLLECTIONS.COURSES,     buildCourseData);
-  setupForm('form-ad',         COLLECTIONS.ADS,         buildAdData);
-}
-
-function setupForm(formId, collectionName, dataBuilder) {
-  const form = document.getElementById(formId);
-  if (!form) return;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = form.querySelector('button[type="submit"]');
-    const originalText = btn.textContent;
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-
-    try {
-      const data = dataBuilder(form);
-      data.createdBy = currentUser.uid;
-      data.postedAt  = serverTimestamp();
-      await addDoc(collection(db, collectionName), data);
-      showToast(`✅ Post created successfully!`, 'success');
-      form.reset();
-    } catch (err) {
-      console.error('Error saving:', err);
-      showToast(`Failed to save: ${err.message}`, 'error');
-    } finally {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  });
-}
-
-// === DATA BUILDERS ===
-function val(form, name) { return form.querySelector(`[name="${name}"]`)?.value.trim() || ''; }
-
-function buildJobData(form) {
-  return {
-    title: val(form,'title'), company: val(form,'company'),
-    location: val(form,'location'), experienceLevel: val(form,'experienceLevel'),
-    description: val(form,'description'), requirements: val(form,'requirements'),
-    benefits: val(form,'benefits'), imagePath: val(form,'imagePath'),
-    applyLink: val(form,'applyLink'), category: 'jobs'
-  };
-}
-
-function buildInternshipData(form) {
-  return { ...buildJobData(form), duration: val(form,'duration'), category: 'internships' };
-}
-
-function buildHackathonData(form) {
-  return {
-    title: val(form,'title'), organizer: val(form,'organizer'),
-    mode: val(form,'mode'), prizePool: val(form,'prizePool'),
-    deadline: val(form,'deadline'), description: val(form,'description'),
-    imagePath: val(form,'imagePath'), applyLink: val(form,'applyLink'),
-    category: 'hackathons'
-  };
-}
-
-function buildTechEventData(form) {
-  return {
-    title: val(form,'title'), speaker: val(form,'speaker'),
-    venue: val(form,'venue'), eventDate: val(form,'eventDate'),
-    description: val(form,'description'), imagePath: val(form,'imagePath'),
-    applyLink: val(form,'applyLink'), category: 'techEvents'
-  };
-}
-
-function buildSeminarData(form) {
-  return { ...buildTechEventData(form), category: 'seminars' };
-}
-
-function buildCourseData(form) {
-  return {
-    title: val(form,'title'), instructor: val(form,'instructor'),
-    platform: val(form,'platform'), level: val(form,'level'),
-    duration: val(form,'duration'), price: val(form,'price'),
-    description: val(form,'description'), imagePath: val(form,'imagePath'),
-    applyLink: val(form,'applyLink'), category: 'courses'
-  };
-}
-
-function buildAdData(form) {
-  return {
-    title: val(form,'title'), imagePath: val(form,'imagePath'),
-    redirectLink: val(form,'redirectLink'), placement: val(form,'placement'),
-    createdAt: serverTimestamp()
-  };
-}
-
-// === MANAGE POSTS ===
+// =============================================
+// MANAGE POSTS — filters the cached array, no re-fetch
+// =============================================
 const FILTER_TO_COLLECTION = {
   jobs: COLLECTIONS.JOBS, internships: COLLECTIONS.INTERNSHIPS,
   hackathons: COLLECTIONS.HACKATHONS, techEvents: COLLECTIONS.TECH_EVENTS,
@@ -326,28 +228,24 @@ async function loadManagePosts() {
   const filterSel = document.getElementById('manage-filter');
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
-
-  const selectedVal = filterSel?.value || 'all';
-  allPosts = [];
-
-  const colsToFetch = selectedVal === 'all'
-    ? Object.values(COLLECTIONS).filter(c => c !== COLLECTIONS.USERS && c !== COLLECTIONS.ADS)
-    : [FILTER_TO_COLLECTION[selectedVal] || selectedVal];
-
-  for (const col of colsToFetch) {
-    try {
-      const snap = await getDocs(query(collection(db, col), orderBy('postedAt', 'desc')));
-      snap.docs.forEach(d => allPosts.push({ id: d.id, _col: col, ...d.data() }));
-    } catch (e) { console.warn('skip col', col, e.message); }
+  if (!cache.posts) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">Loading…</td></tr>';
   }
 
-  if (allPosts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No posts found</td></tr>';
+  const allPosts    = await fetchAllPosts();
+  const selectedVal = filterSel?.value || 'all';
+
+  const filtered = (selectedVal === 'all'
+    ? allPosts
+    : allPosts.filter(p => p._col === (FILTER_TO_COLLECTION[selectedVal] || selectedVal))
+  ).slice().sort((a, b) => (b.postedAt?.toMillis?.() ?? 0) - (a.postedAt?.toMillis?.() ?? 0));
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No posts found</td></tr>';
     return;
   }
 
-  tbody.innerHTML = allPosts.map(post => {
+  tbody.innerHTML = filtered.map(post => {
     const config = CATEGORY_CONFIG[post._col] || { icon: '📄', label: post._col };
     return `
       <tr>
@@ -366,12 +264,82 @@ async function loadManagePosts() {
   }).join('');
 }
 
-// === DELETE POST ===
+// =============================================
+// FORMS
+// =============================================
+function initForms() {
+  setupForm('form-job',        COLLECTIONS.JOBS,        buildJobData);
+  setupForm('form-internship', COLLECTIONS.INTERNSHIPS, buildInternshipData);
+  setupForm('form-hackathon',  COLLECTIONS.HACKATHONS,  buildHackathonData);
+  setupForm('form-techevent',  COLLECTIONS.TECH_EVENTS, buildTechEventData);
+  setupForm('form-seminar',    COLLECTIONS.SEMINARS,    buildSeminarData);
+  setupForm('form-course',     COLLECTIONS.COURSES,     buildCourseData);
+  setupForm('form-ad',         COLLECTIONS.ADS,         buildAdData);
+}
+
+function setupForm(formId, col, builder) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    const orig = btn.textContent;
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    try {
+      const data = builder(form);
+      data.createdBy = currentUser.uid;
+      data.postedAt  = serverTimestamp();
+      await addDoc(collection(db, col), data);
+      showToast('✅ Post created!', 'success');
+      form.reset();
+      bustPosts();
+    } catch (err) {
+      showToast('Failed: ' + err.message, 'error');
+    } finally {
+      btn.textContent = orig; btn.disabled = false;
+    }
+  });
+}
+
+const val = (form, name) => form.querySelector(`[name="${name}"]`)?.value.trim() || '';
+function buildJobData(f)  {
+  return { title: val(f,'title'), company: val(f,'company'), location: val(f,'location'),
+    experienceLevel: val(f,'experienceLevel'), description: val(f,'description'),
+    requirements: val(f,'requirements'), benefits: val(f,'benefits'),
+    imagePath: val(f,'imagePath'), applyLink: val(f,'applyLink'), category: 'jobs' };
+}
+function buildInternshipData(f) { return { ...buildJobData(f), duration: val(f,'duration'), category: 'internships' }; }
+function buildHackathonData(f)  {
+  return { title: val(f,'title'), organizer: val(f,'organizer'), mode: val(f,'mode'),
+    prizePool: val(f,'prizePool'), deadline: val(f,'deadline'), description: val(f,'description'),
+    imagePath: val(f,'imagePath'), applyLink: val(f,'applyLink'), category: 'hackathons' };
+}
+function buildTechEventData(f)  {
+  return { title: val(f,'title'), speaker: val(f,'speaker'), venue: val(f,'venue'),
+    eventDate: val(f,'eventDate'), description: val(f,'description'),
+    imagePath: val(f,'imagePath'), applyLink: val(f,'applyLink'), category: 'techEvents' };
+}
+function buildSeminarData(f) { return { ...buildTechEventData(f), category: 'seminars' }; }
+function buildCourseData(f)  {
+  return { title: val(f,'title'), instructor: val(f,'instructor'), platform: val(f,'platform'),
+    level: val(f,'level'), duration: val(f,'duration'), price: val(f,'price'),
+    description: val(f,'description'), imagePath: val(f,'imagePath'),
+    applyLink: val(f,'applyLink'), category: 'courses' };
+}
+function buildAdData(f) {
+  return { title: val(f,'title'), imagePath: val(f,'imagePath'),
+    redirectLink: val(f,'redirectLink'), placement: val(f,'placement'), createdAt: serverTimestamp() };
+}
+
+// =============================================
+// DELETE / EDIT
+// =============================================
 window.deletePost = async function(id, col) {
   if (!confirm('Delete this post permanently?')) return;
   try {
     await deleteDoc(doc(db, col, id));
     showToast('Post deleted', 'success');
+    bustPosts();
     loadManagePosts();
     loadDashboard();
   } catch (err) {
@@ -379,24 +347,21 @@ window.deletePost = async function(id, col) {
   }
 };
 
-// === EDIT POST ===
 window.editPost = async function(id, col) {
   try {
     const snap = await getDoc(doc(db, col, id));
     if (!snap.exists()) return showToast('Post not found', 'error');
     openEditModal(id, col, snap.data());
-  } catch (err) {
-    showToast('Error loading post', 'error');
-  }
+  } catch { showToast('Error loading post', 'error'); }
 };
 
 function openEditModal(id, col, data) {
-  const modal     = document.getElementById('edit-modal');
-  const modalBody = document.getElementById('edit-modal-body');
-  if (!modal || !modalBody) return;
+  const modal = document.getElementById('edit-modal');
+  const body  = document.getElementById('edit-modal-body');
+  if (!modal || !body) return;
 
   const fields = getFieldsForCollection(col, data);
-  modalBody.innerHTML = `
+  body.innerHTML = `
     <form id="edit-form">
       <div class="form-grid">
         ${fields.map(f => `
@@ -405,10 +370,9 @@ function openEditModal(id, col, data) {
             ${f.type === 'textarea'
               ? `<textarea name="${f.name}" class="form-textarea" ${f.required ? 'required' : ''}>${data[f.name] || ''}</textarea>`
               : f.type === 'select'
-              ? `<select name="${f.name}" class="form-select">
-                  ${f.options.map(o => `<option value="${o}" ${data[f.name] === o ? 'selected' : ''}>${o}</option>`).join('')}
-                </select>`
-              : `<input type="${f.type || 'text'}" name="${f.name}" class="form-input" value="${data[f.name] || ''}" ${f.required ? 'required' : ''}>`
+              ? `<select name="${f.name}" class="form-select">${f.options.map(o =>
+                  `<option value="${o}" ${data[f.name] === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`
+              : `<input type="${f.type||'text'}" name="${f.name}" class="form-input" value="${data[f.name]||''}" ${f.required?'required':''}>`
             }
           </div>`).join('')}
       </div>
@@ -419,115 +383,83 @@ function openEditModal(id, col, data) {
     </form>`;
 
   modal.classList.add('open');
-
-  document.getElementById('edit-form').addEventListener('submit', async (e) => {
+  document.getElementById('edit-form').addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
     const btn  = form.querySelector('button[type="submit"]');
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-
+    btn.textContent = 'Saving…'; btn.disabled = true;
     try {
       const updates = {};
-      fields.forEach(f => {
-        const el = form.querySelector(`[name="${f.name}"]`);
-        if (el) updates[f.name] = el.value.trim();
-      });
+      fields.forEach(f => { const el = form.querySelector(`[name="${f.name}"]`); if (el) updates[f.name] = el.value.trim(); });
       await updateDoc(doc(db, col, id), updates);
-      showToast('Post updated successfully!', 'success');
-      closeEditModal();
-      loadManagePosts();
+      showToast('Post updated!', 'success');
+      closeEditModal(); bustPosts(); loadManagePosts();
     } catch (err) {
       showToast('Update failed: ' + err.message, 'error');
-    } finally {
-      btn.textContent = 'Save Changes';
-      btn.disabled = false;
-    }
+    } finally { btn.textContent = 'Save Changes'; btn.disabled = false; }
   });
 }
 
 function getFieldsForCollection(col, data) {
   const common = [
-    { name: 'title',       label: 'Title',                    required: true },
+    { name: 'title', label: 'Title', required: true },
     { name: 'description', label: 'Description', type: 'textarea', full: true },
-    { name: 'imagePath',   label: 'Image Path',               full: true },
-    { name: 'applyLink',   label: 'Apply / Registration Link', full: true }
+    { name: 'imagePath', label: 'Image Path', full: true },
+    { name: 'applyLink', label: 'Apply / Registration Link', full: true }
   ];
   switch (col) {
     case COLLECTIONS.JOBS:
     case COLLECTIONS.INTERNSHIPS:
-      return [
-        ...common,
-        { name: 'company',  label: 'Company' },
-        { name: 'location', label: 'Location' },
+      return [...common,
+        { name: 'company', label: 'Company' }, { name: 'location', label: 'Location' },
         { name: 'experienceLevel', label: 'Experience Level', type: 'select', options: ['','Entry Level','Junior','Mid Level','Senior','Lead'] },
         { name: 'requirements', label: 'Requirements', type: 'textarea', full: true },
-        { name: 'benefits',     label: 'Benefits',     type: 'textarea', full: true },
-        ...(col === COLLECTIONS.INTERNSHIPS ? [{ name: 'duration', label: 'Duration' }] : [])
-      ];
+        { name: 'benefits', label: 'Benefits', type: 'textarea', full: true },
+        ...(col === COLLECTIONS.INTERNSHIPS ? [{ name: 'duration', label: 'Duration' }] : [])];
     case COLLECTIONS.HACKATHONS:
-      return [
-        ...common,
+      return [...common,
         { name: 'organizer', label: 'Organizer' },
-        { name: 'mode',      label: 'Mode',         type: 'select', options: ['Online','Offline','Hybrid'] },
+        { name: 'mode', label: 'Mode', type: 'select', options: ['Online','Offline','Hybrid'] },
         { name: 'prizePool', label: 'Prize Pool' },
-        { name: 'deadline',  label: 'Deadline',     type: 'date' }
-      ];
+        { name: 'deadline', label: 'Deadline', type: 'date' }];
     case COLLECTIONS.TECH_EVENTS:
     case COLLECTIONS.SEMINARS:
-      return [
-        ...common,
-        { name: 'speaker',   label: 'Speaker' },
-        { name: 'venue',     label: 'Venue' },
-        { name: 'eventDate', label: 'Event Date', type: 'date' }
-      ];
+      return [...common,
+        { name: 'speaker', label: 'Speaker' }, { name: 'venue', label: 'Venue' },
+        { name: 'eventDate', label: 'Event Date', type: 'date' }];
     case COLLECTIONS.COURSES:
       return [
-        { name: 'title',      label: 'Course Title', required: true },
-        { name: 'instructor', label: 'Instructor' },
-        { name: 'platform',   label: 'Platform' },
-        { name: 'level',      label: 'Level', type: 'select', options: ['','Beginner','Intermediate','Advanced','All Levels'] },
-        { name: 'duration',   label: 'Duration' },
-        { name: 'price',      label: 'Price' },
+        { name: 'title', label: 'Course Title', required: true },
+        { name: 'instructor', label: 'Instructor' }, { name: 'platform', label: 'Platform' },
+        { name: 'level', label: 'Level', type: 'select', options: ['','Beginner','Intermediate','Advanced','All Levels'] },
+        { name: 'duration', label: 'Duration' }, { name: 'price', label: 'Price' },
         { name: 'description', label: 'Description', type: 'textarea', full: true },
-        { name: 'imagePath',  label: 'Image Path',   full: true },
-        { name: 'applyLink',  label: 'Enroll Link',  full: true }
-      ];
+        { name: 'imagePath', label: 'Image Path', full: true },
+        { name: 'applyLink', label: 'Enroll Link', full: true }];
     case COLLECTIONS.ADS:
       return [
-        { name: 'title',        label: 'Ad Title',      required: true },
-        { name: 'imagePath',    label: 'Image Path',    full: true },
+        { name: 'title', label: 'Ad Title', required: true },
+        { name: 'imagePath', label: 'Image Path', full: true },
         { name: 'redirectLink', label: 'Redirect Link', full: true },
-        { name: 'placement',    label: 'Placement', type: 'select', options: ['top','betweenCards','popup'] }
-      ];
-    default:
-      return common;
+        { name: 'placement', label: 'Placement', type: 'select', options: ['top','betweenCards','popup'] }];
+    default: return common;
   }
 }
 
-window.closeEditModal = function() {
-  document.getElementById('edit-modal')?.classList.remove('open');
-};
-
-document.getElementById('edit-modal')?.addEventListener('click', function(e) {
-  if (e.target === this) closeEditModal();
-});
-
+window.closeEditModal = function() { document.getElementById('edit-modal')?.classList.remove('open'); };
+document.getElementById('edit-modal')?.addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
 document.getElementById('manage-filter')?.addEventListener('change', loadManagePosts);
 
-// === MOBILE SIDEBAR ===
 function initMobileMenu() {
   const toggle  = document.querySelector('.admin-menu-toggle');
   const sidebar = document.querySelector('.admin-sidebar');
   const overlay = document.querySelector('.sidebar-overlay');
-  toggle?.addEventListener('click',  () => { sidebar?.classList.toggle('open'); overlay?.classList.toggle('open'); });
+  toggle?.addEventListener('click', () => { sidebar?.classList.toggle('open'); overlay?.classList.toggle('open'); });
   overlay?.addEventListener('click', closeMobileSidebar);
 }
-
 function closeMobileSidebar() {
   document.querySelector('.admin-sidebar')?.classList.remove('open');
   document.querySelector('.sidebar-overlay')?.classList.remove('open');
 }
 
-// === START ===
 init();
