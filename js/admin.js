@@ -71,6 +71,10 @@ async function fetchAllUsers(force = false) {
 let currentUser = null;
 
 async function init() {
+  // Kick off data prefetch immediately — don't wait for auth to finish
+  // By the time requireAdmin resolves, data is already loading or done
+  const prefetch = Promise.all([fetchAllPosts(), fetchAllUsers().catch(() => [])]);
+
   try {
     const { user } = await requireAdmin();
     currentUser = user;
@@ -78,6 +82,7 @@ async function init() {
     initNav();
     initForms();
     initMobileMenu();
+    await prefetch; // data is likely already done by now
     showSection('dashboard');
   } catch (err) {
     console.error('Admin auth failed:', err);
