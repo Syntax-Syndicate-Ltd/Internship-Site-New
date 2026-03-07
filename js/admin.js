@@ -56,7 +56,9 @@ async function fetchAllPosts(force = false) {
 async function fetchAllUsers(force = false) {
   if (!force && cache.users && isFresh(cache.usersTs)) return cache.users;
 
+  console.log("🔍 Fetching ss_users...");
   const snap  = await getDocs(collection(db, COLLECTIONS.USERS));
+  console.log("✅ ss_users fetched, count:", snap.size);
   const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
   users.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
@@ -112,7 +114,8 @@ function showSection(id) {
 // =============================================
 async function loadDashboard() {
   // Fetch posts + users simultaneously (both cached after first load)
-  const [posts, users] = await Promise.all([fetchAllPosts(), fetchAllUsers()]);
+  const [posts, usersResult] = await Promise.all([fetchAllPosts(), fetchAllUsers().catch(() => [])]);
+  const users = usersResult;
 
   const countMap = {};
   posts.forEach(p => { countMap[p._col] = (countMap[p._col] || 0) + 1; });
@@ -154,7 +157,14 @@ async function loadUsersTable() {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">Loading users…</td></tr>`;
   }
 
-  const allUsers = await fetchAllUsers();
+  let allUsers;
+  try {
+    allUsers = await fetchAllUsers();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#ff6b6b">❌ Failed to load users: ${err.message}<br><small style="opacity:0.7">Check browser console (F12) for details</small></td></tr>`;
+    console.error("loadUsersTable error:", err);
+    return;
+  }
 
   function renderUsers(list) {
     if (!list.length) {
