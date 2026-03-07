@@ -7,6 +7,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// IMPORTANT — GitHub Pages fix:
+// authDomain must stay as your Firebase project domain.
+// For GitHub Pages to work, add your GitHub Pages URL as an authorized domain:
+//   Firebase Console → Authentication → Settings → Authorized domains → Add domain
+//   Add: YOUR_USERNAME.github.io   (and your custom CNAME domain if any)
 const firebaseConfig = {
   apiKey: "AIzaSyCwBWi9FwLRM_Hleu76WeRjyJ4DQc3XjNk",
   authDomain: "internship-site.firebaseapp.com",

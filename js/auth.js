@@ -22,35 +22,6 @@ import {
 // === ENSURE PERSISTENCE IS SET ===
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-// =============================================
-// USER DATA CACHE (sessionStorage)
-// Avoids hitting Firestore on every single page load.
-// After first fetch, role + profile is read from
-// sessionStorage instantly — zero network round trip.
-// Cache is cleared on sign-out.
-// =============================================
-const USER_CACHE_KEY = 'ss_user_cache';
-
-function getCachedUserData(uid) {
-  try {
-    const raw = sessionStorage.getItem(USER_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed.uid !== uid) return null; // different user
-    return parsed;
-  } catch { return null; }
-}
-
-function setCachedUserData(uid, data) {
-  try {
-    sessionStorage.setItem(USER_CACHE_KEY, JSON.stringify({ uid, ...data }));
-  } catch { /* sessionStorage full or unavailable */ }
-}
-
-function clearUserCache() {
-  try { sessionStorage.removeItem(USER_CACHE_KEY); } catch { /* ignore */ }
-}
-
 // === TOAST NOTIFICATION ===
 export function showToast(message, type = 'info', duration = 4000) {
   let container = document.querySelector('.toast-container');
@@ -70,6 +41,7 @@ export function showToast(message, type = 'info', duration = 4000) {
 }
 
 // === WRITE USER TO FIRESTORE (with retry) ===
+// Used by signup.html directly — kept here for legacy/fallback use
 async function writeUserToFirestore(uid, email, retries = 3) {
   const userData = {
     uid,
@@ -98,16 +70,10 @@ async function writeUserToFirestore(uid, email, retries = 3) {
 }
 
 // === GET USER DATA FROM FIRESTORE ===
-// Checks sessionStorage first — only hits Firestore if cache is empty
 export async function getUserData(uid) {
-  const cached = getCachedUserData(uid);
-  if (cached) return cached;
-
   try {
     const snap = await getDoc(doc(db, COLLECTIONS.USERS, uid));
-    const data = snap.exists() ? snap.data() : null;
-    if (data) setCachedUserData(uid, data);
-    return data;
+    return snap.exists() ? snap.data() : null;
   } catch (err) {
     console.error('Error fetching user data:', err);
     return null;
@@ -141,7 +107,6 @@ export async function login(email, password) {
 
 // === LOGOUT ===
 export async function logout() {
-  clearUserCache(); // wipe cache on sign-out
   await signOut(auth);
 }
 
@@ -169,7 +134,6 @@ export function requireAuth(redirectUrl = 'login.html') {
 }
 
 // === REQUIRE ADMIN ===
-// Checks sessionStorage cache first — skips Firestore entirely if role is cached
 export async function requireAdmin() {
   return new Promise((resolve, reject) => {
     const checkRole = async (user) => {
@@ -177,14 +141,6 @@ export async function requireAdmin() {
         window.location.href = 'login.html';
         return reject(new Error('Not authenticated'));
       }
-
-      // Cache hit — resolve instantly, zero Firestore reads
-      const cached = getCachedUserData(user.uid);
-      if (cached?.role === 'admin') {
-        return resolve({ user, role: 'admin' });
-      }
-
-      // Cache miss — fetch from Firestore, cache for next time
       const role = await getUserRole(user.uid);
       if (role !== 'admin') {
         window.location.href = 'index.html';
@@ -206,19 +162,20 @@ export async function requireAdmin() {
 
 // === NAVBAR AUTH STATE ===
 export function initNavbarAuth() {
-  const navAuth    = document.querySelector('.nav-auth');
+  const navAuth   = document.querySelector('.nav-auth');
   const mobileAuth = document.getElementById('mobile-auth-container');
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // getUserData uses sessionStorage cache — no Firestore read on repeat visits
       const data = await getUserData(user.uid);
-      const role  = data?.role || 'user';
+      const role = data?.role || 'user';
 
+      // Prefer stored username, fall back to Auth displayName, then email prefix
       const displayName = data?.username
         || user.displayName
         || user.email.split('@')[0];
 
+      // Initials: up to 2 chars from name words
       const initials = displayName
         .trim()
         .split(/\s+/)
@@ -227,10 +184,9 @@ export function initNavbarAuth() {
         .toUpperCase()
         .slice(0, 2);
 
-      const college = data?.college
-        ? `<div style="font-size:11px;color:var(--text-muted);margin-top:1px">${data.college}</div>`
-        : '';
+      const college = data?.college ? `<div style="font-size:11px;color:var(--text-muted);margin-top:1px">${data.college}</div>` : '';
 
+      // Desktop navbar
       if (navAuth) {
         navAuth.innerHTML = `
           <div class="user-menu">
@@ -253,6 +209,7 @@ export function initNavbarAuth() {
             </div>
           </div>
         `;
+
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
           await logout();
           showToast('Signed out successfully', 'info');
@@ -260,6 +217,7 @@ export function initNavbarAuth() {
         });
       }
 
+      // Mobile menu
       if (mobileAuth) {
         mobileAuth.innerHTML = `
           <div style="padding:8px 14px">
@@ -270,6 +228,7 @@ export function initNavbarAuth() {
           ${role === 'admin' ? `<a href="admin.html" class="btn btn-secondary" style="flex:1">⚡ Admin</a>` : ''}
           <button class="btn btn-danger" id="mobile-logout-btn" style="flex:1">Sign Out</button>
         `;
+
         document.getElementById('mobile-logout-btn')?.addEventListener('click', async () => {
           await logout();
           showToast('Signed out successfully', 'info');
