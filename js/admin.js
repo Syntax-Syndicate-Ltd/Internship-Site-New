@@ -14,19 +14,15 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 
 // =============================================
 // IN-MEMORY CACHE
-// All Firestore data is fetched ONCE per session.
-// Switching between dashboard / manage / users
-// reuses the cached data instantly — zero extra reads.
-// Cache busts only when you add/edit/delete a post.
 // =============================================
 const cache = {
-  posts:   null,  // flat array of every post doc across all collections
-  users:   null,  // array of user docs
+  posts:   null,
+  users:   null,
   postsTs: 0,
   usersTs: 0,
-  TTL:     60_000 // allow forced refresh after 60 s
+  TTL:     60_000
 };
-const isFresh = ts => Date.now() - ts < cache.TTL;
+const isFresh  = ts => Date.now() - ts < cache.TTL;
 const bustPosts = () => { cache.posts = null; cache.postsTs = 0; };
 const bustUsers = () => { cache.users = null; cache.usersTs = 0; };
 
@@ -35,15 +31,22 @@ const POST_COLS = [
   COLLECTIONS.TECH_EVENTS, COLLECTIONS.SEMINARS, COLLECTIONS.COURSES, COLLECTIONS.ADS
 ];
 
-// Fetch all post collections in parallel, cache result
+// Wrap any promise with a timeout
+function withTimeout(promise, ms = 10000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after ' + ms + 'ms')), ms))
+  ]);
+}
+
 async function fetchAllPosts(force = false) {
   if (!force && cache.posts && isFresh(cache.postsTs)) return cache.posts;
 
   const results = await Promise.all(
     POST_COLS.map(col =>
-      getDocs(collection(db, col))
+      withTimeout(getDocs(collection(db, col)))
         .then(snap => snap.docs.map(d => ({ id: d.id, _col: col, ...d.data() })))
-        .catch(() => [])  // skip silently if a collection doesn't exist yet
+        .catch(() => [])
     )
   );
 
@@ -52,13 +55,13 @@ async function fetchAllPosts(force = false) {
   return cache.posts;
 }
 
-// Fetch users collection, cache result
 async function fetchAllUsers(force = false) {
   if (!force && cache.users && isFresh(cache.usersTs)) return cache.users;
 
-  console.log("🔍 Fetching ss_users...");
-  const snap  = await getDocs(collection(db, COLLECTIONS.USERS));
-  console.log("✅ ss_users fetched, count:", snap.size);
+  console.log('🔍 Fetching ss_users...');
+  // withTimeout prevents hanging forever on deployed environments
+  const snap  = await withTimeout(getDocs(collection(db, COLLECTIONS.USERS)), 10000);
+  console.log('✅ ss_users fetched, count:', snap.size);
   const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
   users.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
@@ -71,10 +74,6 @@ async function fetchAllUsers(force = false) {
 let currentUser = null;
 
 async function init() {
-  // Kick off data prefetch immediately — don't wait for auth to finish
-  // By the time requireAdmin resolves, data is already loading or done
-  const prefetch = Promise.all([fetchAllPosts(), fetchAllUsers().catch(() => [])]);
-
   try {
     const { user } = await requireAdmin();
     currentUser = user;
@@ -82,10 +81,11 @@ async function init() {
     initNav();
     initForms();
     initMobileMenu();
-    await prefetch; // data is likely already done by now
+    // Prefetch AFTER auth confirmed — no silent catch swallowing errors
+    await Promise.all([fetchAllPosts(), fetchAllUsers()]);
     showSection('dashboard');
   } catch (err) {
-    console.error('Admin auth failed:', err);
+    console.error('Admin init failed:', err);
   }
 }
 
@@ -115,12 +115,13 @@ function showSection(id) {
 }
 
 // =============================================
-// DASHBOARD — derives counts from cached posts
+// DASHBOARD
 // =============================================
 async function loadDashboard() {
-  // Fetch posts + users simultaneously (both cached after first load)
-  const [posts, usersResult] = await Promise.all([fetchAllPosts(), fetchAllUsers().catch(() => [])]);
-  const users = usersResult;
+  const [posts, users] = await Promise.all([
+    fetchAllPosts(),
+    fetchAllUsers().catch(() => [])
+  ]);
 
   const countMap = {};
   posts.forEach(p => { countMap[p._col] = (countMap[p._col] || 0) + 1; });
@@ -158,16 +159,14 @@ async function loadUsersTable() {
   const searchInput = document.getElementById('users-search');
   if (!tbody) return;
 
-  if (!cache.users) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">Loading users…</td></tr>`;
-  }
+  tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">Loading users…</td></tr>`;
 
   let allUsers;
   try {
-    allUsers = await fetchAllUsers();
+    allUsers = await fetchAllUsers(true); // force=true: always re-fetch when tab opens
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#ff6b6b">❌ Failed to load users: ${err.message}<br><small style="opacity:0.7">Check browser console (F12) for details</small></td></tr>`;
-    console.error("loadUsersTable error:", err);
+    console.error('loadUsersTable error:', err);
     return;
   }
 
@@ -230,7 +229,7 @@ async function loadUsersTable() {
 }
 
 // =============================================
-// MANAGE POSTS — filters the cached array, no re-fetch
+// MANAGE POSTS
 // =============================================
 const FILTER_TO_COLLECTION = {
   jobs: COLLECTIONS.JOBS, internships: COLLECTIONS.INTERNSHIPS,
