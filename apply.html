@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Details — Syntax Syndicate</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="icon" href="favicon.png" type="image/png" id="fav">
 <style>
     /* ===========================
    MOBILE AUTH CONTAINER FIX
@@ -74,8 +75,10 @@
 <nav class="navbar">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">
-      <div class="nav-logo-icon">⚡</div>
-      Syntax Syndicate
+      <img src="logo.png" alt="Syntax Syndicate" class="nav-logo-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="nav-logo-icon" style="display:none"><i class="bi bi-lightning-charge-fill"></i></div>
+      <span><span class="brand-name">Syntax</span> <span class="brand-accent">Syndicate</span></span>
     </a>
     <ul class="nav-links">
       <li><a href="index.html" class="nav-link">Home</a></li>
