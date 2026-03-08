@@ -6,7 +6,7 @@
   <title>Privacy Policy — Syntax Syndicate</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="icon" href="favicon.png" type="image/png" id="fav">
 <style>
 .mobile-nav-auth { display:flex; flex-direction:column; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); width:100%; }
 .mobile-nav-auth .btn { width:100%; justify-content:center; text-align:center; }
@@ -88,8 +88,10 @@
 <nav class="navbar" id="navbar">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">
-      <div class="nav-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-      Syntax Syndicate
+      <img src="logo.png" alt="Syntax Syndicate" class="nav-logo-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+
+      <span><span class="brand-name">Syntax</span> <span class="brand-accent">Syndicate</span></span>
     </a>
     <ul class="nav-links">
       <li><a href="index.html" class="nav-link">Home</a></li>
