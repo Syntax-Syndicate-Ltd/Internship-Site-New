@@ -212,6 +212,53 @@
       btn.disabled = false;
     }
   });
+
+  // Disable Right Click
+document.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+});
+
+// Disable common DevTools shortcuts
+document.addEventListener("keydown", function (e) {
+
+    // F12
+    if (e.key === "F12") {
+        e.preventDefault();
+    }
+
+    // Ctrl+Shift+I (Inspect)
+    if (e.ctrlKey && e.shiftKey && e.key === "I") {
+        e.preventDefault();
+    }
+
+    // Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && e.key === "J") {
+        e.preventDefault();
+    }
+
+    // Ctrl+Shift+C (Inspect Element)
+    if (e.ctrlKey && e.shiftKey && e.key === "C") {
+        e.preventDefault();
+    }
+
+    // Ctrl+U (View Source)
+    if (e.ctrlKey && e.key === "u") {
+        e.preventDefault();
+    }
+
+    // Ctrl+S (Save Page)
+    if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+    }
+});
+
+// DevTools open detection (basic trick)
+setInterval(function () {
+    if (window.outerWidth - window.innerWidth > 160 || 
+        window.outerHeight - window.innerHeight > 160) {
+        document.body.innerHTML = "";
+    }
+}, 1000);
 </script>
 </body>
 </html>
