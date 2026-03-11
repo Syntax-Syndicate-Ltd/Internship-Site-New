@@ -200,7 +200,7 @@
         <div class="cat-icon" style="background:#ecfeff"><i class="bi bi-book" style="color:#3e694a;font-size:20px"></i></div>
         <h3>Courses</h3>
         <p>Gain certificates</p>
-        <span class="cat-count" id="cc-internships">Loading…</span>
+        <span class="cat-count" id="cc-courses">Loading…</span>
       </a>
       <a href="opportunities.html?cat=hackathons" class="cat-card">
         <div class="cat-icon" style="background:#fef2f2"><i class="bi bi-lightning-fill" style="color:#dc2626;font-size:20px"></i></div>
@@ -224,7 +224,7 @@
         <div class="cat-icon" style="background:#f5f3ff"><i class="bi bi-search" style="color:#afa4c2;font-size:20px"></i></div>
         <h3>Browse All</h3>
         <p>All categories</p>
-        <span class="cat-count" id="cc-seminars">Explore now</span>
+        <span class="cat-count">Explore now</span>
       </a>
     </div>
   </div>
@@ -400,9 +400,9 @@
     container.innerHTML = posts.map(p => {
       const cfg = CAT_CFG[p._collection] || { label: p._collection, bg: '#f0f0f0', color: '#555', icon: 'bi-file-text' };
       const title   = p.title || 'Untitled';
-      const company = p.company || p.organizer || '';
+      const company = p.company || p.organizer || p.instructor || p.platform || '';
       const loc     = p.location || p.venue || '';
-      const sub     = [company, loc].filter(Boolean).join(' · ') || 'Syntax Syndicate';
+      const sub     = [company, loc].filter(Boolean).join(' · ') || cfg.label;
 
       return `
         <a href="apply.html?id=${p.id}&type=${p._collection}" class="hero-card-preview">

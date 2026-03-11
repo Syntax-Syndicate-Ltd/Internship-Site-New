@@ -269,7 +269,7 @@
 
   function renderPost(post) {
     const config = CATEGORY_CONFIG[post._collection] || { icon: '📄', label: post._collection, badgeClass: '', emoji: '📄' };
-    const company = post.company || post.organizer || 'Syntax Syndicate';
+    const company = post.company || post.organizer || post.instructor || post.platform || '';
     const location = post.location || post.venue || '';
 
     // Document title

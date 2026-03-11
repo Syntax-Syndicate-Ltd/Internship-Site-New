@@ -355,7 +355,7 @@
 
   function makeCard(post) {
     const cfg     = CAT_CFG[post._col] || { icon:'bi-file-text', label:post._col, badge:'', emoji:'📄' };
-    const company = post.company || post.organizer || 'Syntax Syndicate';
+    const company = post.company || post.organizer || post.instructor || post.platform || '';
     const loc     = post.location || post.venue || (post.mode==='Online'?'Online':'');
     const div     = document.createElement('div');
     div.className = 'card';

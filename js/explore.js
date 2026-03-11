@@ -263,7 +263,7 @@ function createCard(post) {
     ? `<div class="card-image"><img src="${post.imagePath}" alt="${post.title}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=font-size:40px>${config.emoji}</span>'"></div>`
     : `<div class="card-image-placeholder">${config.emoji}</div>`;
 
-  const company = post.company || post.organizer || 'Syntax Syndicate';
+  const company = post.company || post.organizer || post.instructor || post.platform || '';
   const location = post.location || post.venue || (post.mode === 'Online' ? 'Online' : '') || 'N/A';
 
   div.innerHTML = `
