@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /login.html
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin.html
+Disallow: /login.html
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin.html
+Disallow: /login.html
+
+Sitemap: https://opportunities.syntaxsyndicate.co.in/sitemap.xml
